@@ -6,7 +6,7 @@ Anyone can start using it instantly in a private guest workspace — no sign-up 
 
 ## Live URL
 
-_Added after Milestone 1 deploy._
+_Pending first Vercel deploy — added once available._
 
 ## Features (P0)
 
@@ -35,9 +35,10 @@ Deployed on Vercel with a Neon Postgres database.
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in DATABASE_URL with your Neon `dev` branch connection string
-npm run dev                  # http://localhost:3000
+npm run dev   # http://localhost:3000
 ```
+
+No database setup needed to start: with no `DATABASE_URL` set, `npm run dev` uses a local PGlite database persisted to `./.pglite`, migrated automatically on startup. To point at a real Postgres instead (e.g. a Neon `dev` branch), copy `.env.example` to `.env.local` and set `DATABASE_URL`.
 
 ## Scripts
 
