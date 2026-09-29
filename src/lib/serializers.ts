@@ -1,7 +1,8 @@
-import type { tasks, users } from "@/db/schema";
+import type { notes, tasks, users } from "@/db/schema";
 
 type UserRow = typeof users.$inferSelect;
 type TaskRow = typeof tasks.$inferSelect;
+type NoteRow = typeof notes.$inferSelect;
 
 export function serializeMe(user: UserRow) {
   return {
@@ -25,5 +26,15 @@ export function serializeTask(task: TaskRow) {
     completedAt: task.completedAt ? task.completedAt.toISOString() : null,
     createdAt: task.createdAt.toISOString(),
     updatedAt: task.updatedAt.toISOString(),
+  };
+}
+
+export function serializeNote(note: NoteRow) {
+  return {
+    id: note.id,
+    title: note.title,
+    content: note.content,
+    createdAt: note.createdAt.toISOString(),
+    updatedAt: note.updatedAt.toISOString(),
   };
 }
