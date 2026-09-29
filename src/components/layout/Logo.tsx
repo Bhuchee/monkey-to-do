@@ -21,8 +21,8 @@ export function Logo({ collapsed = false }: { collapsed?: boolean }) {
       >
         <Banana className="size-5 text-brand-fg" strokeWidth={2} aria-hidden="true" />
       </span>
-      <span className="text-base font-bold">
-        <span className="text-fg">Monkey</span> <span className="text-brand">TO-DO</span>
+      <span className="whitespace-nowrap text-base font-bold">
+        <span className="text-fg">Monkey</span> <span className="text-brand">TO&#8209;DO</span>
       </span>
     </span>
   );
