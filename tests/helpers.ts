@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { tasks, users } from "@/db/schema";
+import { notes, tasks, users } from "@/db/schema";
 
 type CallOptions = {
   url: string;
@@ -61,6 +61,20 @@ export async function makeTask(
   const [row] = await db
     .insert(tasks)
     .values({ userId, title: "Task", ...overrides })
+    .returning();
+
+  return row;
+}
+
+export async function makeNote(
+  userId: string,
+  overrides: Partial<typeof notes.$inferInsert> = {},
+) {
+  await db.insert(users).values({ id: userId, isGuest: true }).onConflictDoNothing();
+
+  const [row] = await db
+    .insert(notes)
+    .values({ userId, ...overrides })
     .returning();
 
   return row;
