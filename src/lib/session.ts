@@ -31,19 +31,26 @@ export async function requireUser(request: Request): Promise<CurrentUser> {
     throw new UnauthorizedError();
   }
 
-  const [existing] = await db.select().from(users).where(eq(users.id, guestId)).limit(1);
-
-  if (existing) {
-    if (!existing.isGuest) {
-      throw new UnauthorizedError();
-    }
-    return existing;
-  }
-
+  // Insert first (atomic at the DB level) rather than select-then-insert:
+  // a browser's first page load fires several requests concurrently (e.g.
+  // GuestBanner's /api/me alongside the page's own data fetch), and a
+  // select-then-insert race let two requests both see "no existing row"
+  // and both try to insert, so the loser hit a unique-constraint 500.
   const [created] = await db
     .insert(users)
     .values({ id: guestId, isGuest: true })
+    .onConflictDoNothing()
     .returning();
 
-  return created;
+  if (created) {
+    return created;
+  }
+
+  const [existing] = await db.select().from(users).where(eq(users.id, guestId)).limit(1);
+
+  if (!existing || !existing.isGuest) {
+    throw new UnauthorizedError();
+  }
+
+  return existing;
 }
