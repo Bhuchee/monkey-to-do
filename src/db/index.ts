@@ -1,6 +1,7 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle as drizzleNeon, type NeonHttpDatabase } from "drizzle-orm/neon-http";
 import { drizzle as drizzlePglite } from "drizzle-orm/pglite";
+import { migrate } from "drizzle-orm/pglite/migrator";
 import { PGlite } from "@electric-sql/pglite";
 
 import * as schema from "./schema";
@@ -13,12 +14,21 @@ function createDb(): Db {
     return drizzlePglite(client, { schema }) as unknown as Db;
   }
 
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL is not set — see .env.example");
+  if (process.env.DATABASE_URL) {
+    const sql = neon(process.env.DATABASE_URL);
+    return drizzleNeon(sql, { schema });
   }
 
-  const sql = neon(process.env.DATABASE_URL);
-  return drizzleNeon(sql, { schema });
+  if (process.env.NODE_ENV === "development") {
+    const client = new PGlite("./.pglite");
+    const db = drizzlePglite(client, { schema });
+    void migrate(db, { migrationsFolder: "./src/db/migrations" }).catch((error) => {
+      console.error("Local PGlite auto-migration failed:", error);
+    });
+    return db as unknown as Db;
+  }
+
+  throw new Error("DATABASE_URL is not set — see .env.example");
 }
 
 let instance: Db | undefined;

@@ -151,9 +151,12 @@ Keep this structure. New files go in the folder that matches their role; ask bef
 - **Changing the schema:** edit `schema.ts` → `npm run db:generate` → commit the generated migration with the schema change. **Never edit or delete a migration that has been committed.** If the change alters the FRD data model or API, update FRD.md in the same commit.
 - **`src/db/index.ts`:**
   - `NODE_ENV === "test"` → Drizzle over **in-memory PGlite** (created once per test worker).
-  - Otherwise → Drizzle `neon-http` using `DATABASE_URL`. If `DATABASE_URL` is missing, **throw** a clear error ("DATABASE_URL is not set — see .env.example"). Never fall back to a file or in-memory DB outside tests.
+  - Otherwise, if `DATABASE_URL` is set → Drizzle `neon-http` using it. This covers production (Vercel + Neon) and any local setup that has `.env.local` pointed at a real database (e.g. a Neon `dev` branch).
+  - Otherwise, if `NODE_ENV === "development"` → Drizzle over **PGlite persisted to `./.pglite`** (gitignored), with migrations from `src/db/migrations` applied automatically on startup. This lets `npm run dev` work with zero setup before Neon is connected; it's local convenience only, never used in production.
+  - Otherwise (production with no `DATABASE_URL`) → **throw** a clear error ("DATABASE_URL is not set — see .env.example"). Never fall back to a file or in-memory DB outside tests/development.
+  - `db` is exported as a lazily-initialised proxy so importing this module never requires a database — only the first real query does. This keeps `next build`'s static page-data collection working without `DATABASE_URL` set.
   - Export one `db` typed so both drivers work with the same query code.
-- **Local development** uses a Neon **`dev` branch** connection string in `.env.local`. Production uses Neon's main branch via Vercel's integration.
+- **Local development** starts on the zero-setup PGlite path above. Switching to a real database locally (e.g. a Neon **`dev` branch**) just means setting `DATABASE_URL` in `.env.local`. Production uses Neon's main branch via Vercel's integration.
 - **No `db.transaction()`** — the `neon-http` driver doesn't support interactive transactions. Write multi-step operations so a partial failure is safe and can be re-run (e.g. P1 merge: move children first, delete the guest row last).
 - **Ownership:** every query on `tasks`, `notes`, `categories` filters by `user_id = currentUser.id`. Every update/delete uses `WHERE id = $id AND user_id = $userId` and treats 0 rows affected as 404.
 - Always set `updated_at = now()` on update. Status `done` sets `completed_at`; leaving `done` clears it (FRD §2.2) — do this in the API, not the client.
