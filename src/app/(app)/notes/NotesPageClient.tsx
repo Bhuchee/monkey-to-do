@@ -86,7 +86,7 @@ export function NotesPageClient() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-96px)] flex-col overflow-hidden rounded-lg border border-border md:h-[calc(100vh-64px)] md:flex-row">
+    <div className="flex h-[calc(100dvh-96px)] flex-col overflow-hidden rounded-lg border border-border md:h-[calc(100dvh-64px)] md:flex-row">
       <div className={selectedId ? "hidden md:flex md:h-full" : "flex h-full"}>
         <NoteList
           notes={notes}
