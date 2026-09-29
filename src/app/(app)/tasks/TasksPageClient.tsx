@@ -1,19 +1,33 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
+import { TaskFilters } from "@/components/tasks/TaskFilters";
 import { TaskList } from "@/components/tasks/TaskList";
 import { Button } from "@/components/ui/button";
 import { useTasks } from "@/hooks/useTasks";
 import { ApiError, deleteTask, type Task } from "@/lib/api-client";
 
+const FILTER_KEYS = ["q", "status", "priority", "due", "today"] as const;
+
 export function TasksPageClient() {
-  const { tasks, isLoading, error, mutate } = useTasks();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const filterParams: Record<string, string> = {};
+  for (const key of FILTER_KEYS) {
+    const value = searchParams.get(key);
+    if (value) filterParams[key] = value;
+  }
+  const hasActiveFilters = Object.keys(filterParams).length > 0;
+
+  const { tasks, isLoading, error, mutate } = useTasks(filterParams);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>(undefined);
@@ -75,6 +89,8 @@ export function TasksPageClient() {
         }
       />
 
+      <TaskFilters />
+
       <TaskList
         tasks={tasks}
         isLoading={isLoading}
@@ -83,6 +99,8 @@ export function TasksPageClient() {
         onEdit={openEdit}
         onRequestDelete={setDeleteTarget}
         onCreate={openCreate}
+        hasActiveFilters={hasActiveFilters}
+        onClearFilters={() => router.replace("/tasks")}
       />
 
       <TaskDialog open={dialogOpen} onOpenChange={setDialogOpen} task={editingTask} onSaved={handleSaved} />

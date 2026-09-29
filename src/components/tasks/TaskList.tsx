@@ -1,6 +1,6 @@
 "use client";
 
-import { ListTodo, Plus } from "lucide-react";
+import { ListTodo, Plus, SearchX } from "lucide-react";
 import type { KeyedMutator } from "swr";
 
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -18,6 +18,8 @@ export function TaskList({
   onEdit,
   onRequestDelete,
   onCreate,
+  hasActiveFilters,
+  onClearFilters,
 }: {
   tasks: Task[] | undefined;
   isLoading: boolean;
@@ -26,6 +28,8 @@ export function TaskList({
   onEdit: (task: Task) => void;
   onRequestDelete: (task: Task) => void;
   onCreate: () => void;
+  hasActiveFilters: boolean;
+  onClearFilters: () => void;
 }) {
   if (isLoading) {
     return (
@@ -42,6 +46,21 @@ export function TaskList({
   }
 
   if (!tasks || tasks.length === 0) {
+    if (hasActiveFilters) {
+      return (
+        <EmptyState
+          icon={SearchX}
+          title="No tasks match your filters"
+          description="Try a different search or clear your filters."
+          action={
+            <Button variant="secondary" onClick={onClearFilters}>
+              Clear filters
+            </Button>
+          }
+        />
+      );
+    }
+
     return (
       <EmptyState
         icon={ListTodo}
