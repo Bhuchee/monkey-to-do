@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { GET } from "@/app/api/me/route";
+import { db } from "@/db";
+import { users } from "@/db/schema";
 import { call, newGuest } from "../helpers";
 
 describe("GET /api/me", () => {
@@ -35,5 +37,22 @@ describe("GET /api/me", () => {
     expect(first.status).toBe(200);
     expect(second.status).toBe(200);
     expect(second.json.data).toEqual(first.json.data);
+  });
+
+  it("returns 401 when the cookie is not a valid UUID", async () => {
+    const res = await call(GET, { url: "/api/me", guest: "not-a-uuid" });
+
+    expect(res.status).toBe(401);
+    expect(res.json.error.code).toBe("UNAUTHORIZED");
+  });
+
+  it("returns 401 when the cookie points at a non-guest user", async () => {
+    const nonGuestId = newGuest();
+    await db.insert(users).values({ id: nonGuestId, isGuest: false });
+
+    const res = await call(GET, { url: "/api/me", guest: nonGuestId });
+
+    expect(res.status).toBe(401);
+    expect(res.json.error.code).toBe("UNAUTHORIZED");
   });
 });
