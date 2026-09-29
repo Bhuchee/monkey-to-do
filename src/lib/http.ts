@@ -8,6 +8,13 @@ export class NotFoundError extends Error {
   }
 }
 
+export class UnauthorizedError extends Error {
+  constructor(message = "Unauthorized") {
+    super(message);
+    this.name = "UnauthorizedError";
+  }
+}
+
 export function ok<T>(data: T, init?: ResponseInit) {
   return NextResponse.json({ data }, { status: 200, ...init });
 }
@@ -48,10 +55,14 @@ export async function readJson(request: Request): Promise<unknown> {
   }
 }
 
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isUuid(value: string): boolean {
+  return uuidPattern.test(value);
+}
+
 export function parseId(id: string): string {
-  const uuidPattern =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!uuidPattern.test(id)) {
+  if (!isUuid(id)) {
     throw new NotFoundError();
   }
   return id;
@@ -71,6 +82,9 @@ export function handle<C>(
       }
       if (error instanceof NotFoundError) {
         return fail(404, "NOT_FOUND", error.message || "Not found");
+      }
+      if (error instanceof UnauthorizedError) {
+        return fail(401, "UNAUTHORIZED", error.message || "Unauthorized");
       }
       console.error(error);
       return fail(500, "INTERNAL_ERROR", "Something went wrong");
