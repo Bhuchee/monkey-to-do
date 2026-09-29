@@ -1,0 +1,316 @@
+# AGENTS.md — Rules for AI coding agents working on Monkey TO-DO
+
+You are building **Monkey TO-DO**, a to-do + notes web app (HNG Internship 15, Stage 1). This file is binding. Follow it on every task, in every session.
+
+## 0. Before you do anything
+
+1. Read, in order: **[PRD.md](./PRD.md)** (why, scope, priorities) → **[FRD.md](./FRD.md)** (exact behaviour, data model, API contract) → **[DESIGN.md](./DESIGN.md)** (visual rules) → this file.
+2. Identify the **feature ID(s)** (`F-xx`) the task belongs to. If a request doesn't map to an FRD feature, say so and ask before building it.
+3. **Respect priority.** Do not start P1 work until every P0 feature is deployed and passing. Never build P2 today.
+4. Work in **small steps**: one feature slice at a time (schema → API → tests → UI), run checks, commit, then move on.
+
+**Source-of-truth order when documents seem to conflict:** FRD.md (behaviour/API/data) > DESIGN.md (look) > AGENTS.md (process) > PRD.md (intent). If you find a real conflict, stop and ask; don't guess.
+
+---
+
+## 1. What we're building (summary)
+
+- One **Next.js** app deployed on **Vercel**: pages + API route handlers in the same project. There is **no separate backend** and no Render/Express/NestJS server.
+- **Neon Postgres** database via Drizzle ORM.
+- **Guest workspace** (P0): every browser gets a private workspace via an `mtd_guest` cookie — no login screen. **Google sign-in** via Auth.js is P1.
+- P0 features: tasks (CRUD, status, priority, due date), search & filter, notes, Kanban board, health check. P1: calendar, categories, Google sign-in.
+
+---
+
+## 2. Tech stack (fixed)
+
+Do **not** add, remove or swap dependencies without asking first. If you think one is needed, explain why in one sentence and wait.
+
+| Concern | Choice |
+|---|---|
+| Framework | Next.js 15 (App Router, `src/` dir), React 19 |
+| Language | TypeScript, `strict: true` |
+| Styling | Tailwind CSS v4, tokens from DESIGN.md §3.5 |
+| Components | shadcn/ui (add via `npx shadcn@latest add <name>`) |
+| Icons | `lucide-react` only |
+| Database | Neon Postgres, `@neondatabase/serverless` with Drizzle's `neon-http` driver |
+| ORM / migrations | `drizzle-orm`, `drizzle-kit` |
+| Test database | `@electric-sql/pglite` (in-memory Postgres) with Drizzle's `pglite` driver |
+| Validation | `zod` (shared by API and forms) |
+| Client data | `swr` |
+| Drag and drop | `@dnd-kit/core` (+ `@dnd-kit/utilities` if needed) |
+| Dates | `date-fns` |
+| Toasts | `sonner` (via shadcn) |
+| Tests | `vitest` |
+| Auth (P1) | `next-auth` v5 (Auth.js), Google provider, JWT sessions, **no database adapter** |
+
+---
+
+## 3. Commands
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Local dev server at http://localhost:3000 |
+| `npm run build` | Production build (no migrations) |
+| `npm run vercel-build` | `drizzle-kit migrate && next build` — Vercel runs this automatically |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | `vitest run` — all tests, in-memory DB, no network needed |
+| `npm run test:watch` | Vitest watch mode |
+| `npm run db:generate` | Create a migration from changes in `src/db/schema.ts` |
+| `npm run db:migrate` | Apply migrations to the database in `DATABASE_URL` |
+| `npm run check` | `lint` + `typecheck` + `test` — must pass before every commit |
+
+Add any missing scripts to `package.json` exactly as named above.
+
+---
+
+## 4. Project structure
+
+```
+src/
+  app/
+    layout.tsx                 # Root: Inter font, <Toaster />, metadata
+    page.tsx                   # redirect("/tasks")
+    icon.svg                   # Logo mark (DESIGN.md §1)
+    globals.css                # Tokens (DESIGN.md §3.5)
+    (app)/
+      layout.tsx               # App shell: Sidebar, BottomNav, GuestBanner
+      tasks/page.tsx
+      board/page.tsx
+      notes/page.tsx
+      calendar/page.tsx        # P1
+    api/
+      health/route.ts
+      me/route.ts
+      tasks/route.ts           # GET list, POST create
+      tasks/[id]/route.ts      # GET, PATCH, DELETE
+      notes/route.ts
+      notes/[id]/route.ts
+      categories/route.ts      # P1
+      categories/[id]/route.ts # P1
+      auth/[...nextauth]/route.ts  # P1
+  components/
+    ui/                        # shadcn components (generated)
+    layout/                    # Sidebar, BottomNav, GuestBanner, UserMenu, PageHeader, Logo
+    tasks/                     # TaskList, TaskRow, TaskDialog, TaskFilters, DueChip, PriorityBadge, StatusBadge
+    board/                     # Board, BoardColumn, TaskCard
+    notes/                     # NoteList, NoteEditor
+    calendar/                  # MonthGrid, AgendaList, UnscheduledList (P1)
+    categories/                # ManageCategoriesDialog, CategoryChip (P1)
+    shared/                    # EmptyState, ErrorState, ConfirmDialog
+  db/
+    index.ts                   # Exports `db` (see §6)
+    schema.ts                  # All tables and enums — FRD §2
+    migrations/                # Generated by drizzle-kit. Never edit by hand.
+  hooks/                       # useTasks, useNotes, useCategories, useMe (SWR)
+  lib/
+    http.ts                    # ok(), created(), noContent(), fail(), handle() helpers
+    session.ts                 # requireUser(request)
+    api-client.ts              # Typed fetch wrappers used by hooks
+    validation/                # tasks.ts, notes.ts, categories.ts, common.ts (Zod)
+    serializers.ts             # DB row → API shape (camelCase, no userId)
+    dates.ts                   # localToday(), isOverdue(), formatDue()
+    account-merge.ts           # P1: guest → Google upgrade/merge
+  auth.ts                      # P1: Auth.js config
+  middleware.ts                # Sets mtd_guest cookie (FRD §3.2)
+tests/
+  setup.ts                     # Migrate in-memory DB, truncate between tests
+  helpers.ts                   # call(), newGuest(), makeTask(), makeNote()
+  api/
+    health.test.ts
+    me.test.ts
+    tasks.test.ts
+    notes.test.ts
+    categories.test.ts         # P1
+    auth-merge.test.ts         # P1
+drizzle.config.ts
+vitest.config.ts
+.env.example
+```
+
+Keep this structure. New files go in the folder that matches their role; ask before creating a new top-level folder.
+
+---
+
+## 5. Code conventions
+
+- **Naming:** components `PascalCase.tsx`; hooks `useThing.ts`; other files `kebab-case.ts`; variables/functions `camelCase`; DB tables/columns `snake_case`; enums values `snake_case` (`in_progress`).
+- **Imports:** use the `@/` alias for anything under `src/`. No deep relative paths (`../../..`).
+- **TypeScript:** no `any`, no `@ts-ignore`, no non-null `!` unless you've just checked. Infer types from Zod (`z.infer`) and Drizzle (`typeof tasks.$inferSelect`) instead of redeclaring them.
+- **Server vs client:** components are Server Components by default. Add `"use client"` only to components that need state, effects, event handlers or browser APIs — keep those leaf-level.
+- **Functions** small and single-purpose. No dead code, no commented-out code, no `console.log` left in commits (use `console.error` in the API error handler only).
+- **Copy and UI** follow DESIGN.md: sentence case, **no emoji**, Lucide icons only, tokens only (no hex or Tailwind palette colours in components).
+- **Formatting:** Prettier defaults (2 spaces, double quotes, semicolons, trailing commas). ESLint must pass with zero warnings.
+
+---
+
+## 6. Database rules
+
+- **All tables live in `src/db/schema.ts`** and must match FRD §2 exactly (names, types, defaults, constraints, indexes).
+- **Changing the schema:** edit `schema.ts` → `npm run db:generate` → commit the generated migration with the schema change. **Never edit or delete a migration that has been committed.** If the change alters the FRD data model or API, update FRD.md in the same commit.
+- **`src/db/index.ts`:**
+  - `NODE_ENV === "test"` → Drizzle over **in-memory PGlite** (created once per test worker).
+  - Otherwise → Drizzle `neon-http` using `DATABASE_URL`. If `DATABASE_URL` is missing, **throw** a clear error ("DATABASE_URL is not set — see .env.example"). Never fall back to a file or in-memory DB outside tests.
+  - Export one `db` typed so both drivers work with the same query code.
+- **Local development** uses a Neon **`dev` branch** connection string in `.env.local`. Production uses Neon's main branch via Vercel's integration.
+- **No `db.transaction()`** — the `neon-http` driver doesn't support interactive transactions. Write multi-step operations so a partial failure is safe and can be re-run (e.g. P1 merge: move children first, delete the guest row last).
+- **Ownership:** every query on `tasks`, `notes`, `categories` filters by `user_id = currentUser.id`. Every update/delete uses `WHERE id = $id AND user_id = $userId` and treats 0 rows affected as 404.
+- Always set `updated_at = now()` on update. Status `done` sets `completed_at`; leaving `done` clears it (FRD §2.2) — do this in the API, not the client.
+- Use Drizzle's query builder. Raw SQL only via Drizzle's `sql` template tag (parameterised) — never string concatenation.
+
+---
+
+## 7. API rules
+
+Every endpoint must match **FRD §3** exactly: path, method, query params, body fields, status codes, response envelope and object shape.
+
+1. **Envelope:** success `{ data }`; error `{ error: { code, message, details? } }`. Use the helpers in `src/lib/http.ts` — never hand-write `NextResponse.json` shapes in routes.
+2. **Auth:** call `requireUser(request)` first in every handler except `/api/health` and `/api/auth/*`. `requireUser` reads the `mtd_guest` cookie **from `request.headers`** (not `next/headers`) so handlers are testable; in P1 it checks the Auth.js session first.
+3. **Validate everything** with the Zod schemas in `src/lib/validation/` — body, query params and `:id`. Schemas are `.strict()`. Invalid UUID in the path → 404. Malformed JSON → 400 `VALIDATION_ERROR`.
+4. **Serialize** rows through `src/lib/serializers.ts` (camelCase, dates as `YYYY-MM-DD`, timestamps as ISO strings, **never include `userId`**).
+5. **Errors:** wrap each handler in `handle()` which maps Zod errors → 400, known not-found → 404, everything else → 500 `INTERNAL_ERROR` with a generic message and `console.error` of the real error. Never leak stack traces, SQL or env values.
+6. **Status codes:** POST → 201, DELETE → 204 (empty body), others → 200. Someone else's row → 404, not 403.
+7. **Dynamic route params** are async in Next 15: `{ params }: { params: Promise<{ id: string }> }` → `const { id } = await params`.
+8. Route handlers stay thin: parse → authorize → call a small query function → serialize → respond.
+
+**Handler shape (follow this pattern):**
+```ts
+export const PATCH = handle(async (request, { params }: { params: Promise<{ id: string }> }) => {
+  const user = await requireUser(request);
+  const id = parseId((await params).id);            // 404 if not a UUID
+  const input = taskUpdateSchema.parse(await readJson(request));
+  const row = await updateTask(user.id, id, input);  // 404 if no row
+  return ok(serializeTask(row));
+});
+```
+
+---
+
+## 8. Frontend rules
+
+- **Follow DESIGN.md for every visual decision.** If DESIGN.md doesn't cover something, use the closest existing pattern and mention it in your summary.
+- **Data flow:** UI → SWR hooks in `src/hooks/` → `src/lib/api-client.ts` → API routes. Components never call `fetch` directly and never import from `src/db`.
+- **Mutations** update the SWR cache optimistically where FRD says so (F-07.1, F-10.3) and **roll back with an error toast** on failure. Other mutations revalidate after success.
+- **Forms** validate with the same Zod schemas as the API before sending, show inline errors (DESIGN.md §6.2), and keep user input on failure.
+- **Filter state** lives in the URL query (F-08.4). Send the user's local `today` (`localToday()` in `src/lib/dates.ts`) with any `due` filter.
+- **Every data view** implements loading (skeleton), empty, filtered-empty and error states (DESIGN.md §6.8).
+- **Responsive:** check 375 px, 768 px and 1280 px widths. No horizontal page scroll.
+- **Accessibility:** DESIGN.md §7 — labels, `aria-label` on icon-only buttons, focus rings, keyboard access, colour never the only signal.
+- Browser storage (`localStorage`) only for the guest-banner dismissal, always inside `try/catch`.
+
+---
+
+## 9. Testing and validation rules (mandatory)
+
+> **Write tests for every endpoint you create, and always validate that these endpoints are working.**
+
+1. **Every API endpoint gets tests in the same change that creates or modifies it.** No endpoint is "done" without passing tests. Minimum cases per endpoint are listed in **FRD §6 → "Minimum test cases per endpoint"** — cover all of them.
+2. **Every endpoint's tests must include:** a success case, a validation failure (400), a not-found/ownership case (404) where an `:id` exists, and a missing-cookie case (401) where auth applies.
+3. **How tests run:** Vitest calls the route handler functions directly with a real `Request` object against an **in-memory PGlite** database. `tests/setup.ts` applies migrations once and truncates all tables before each test. No network, no Neon, no running server.
+   ```ts
+   // tests/helpers.ts
+   const res = await call(POST, { url: "/api/tasks", guest: guestA, body: { title: "Buy milk" } });
+   expect(res.status).toBe(201);
+   expect(res.json.data).toMatchObject({ title: "Buy milk", status: "todo", priority: "medium" });
+   ```
+   - `guest` sets the `Cookie: mtd_guest=<uuid>` header. Use two guests (`guestA`, `guestB`) to test isolation.
+   - For `[id]` routes pass `params: Promise.resolve({ id })`.
+   - P1: mock `@/auth` with `vi.mock` to simulate a signed-in session.
+4. **Run `npm run check` before every commit** and report the result (number of tests passed). If anything fails, fix it before moving on.
+5. **Never** delete, skip (`.skip`/`.only`), or weaken a test to make it pass. If a test is wrong because the FRD changed, update the FRD and the test together and say so.
+6. **Bug fixes start with a failing test** that reproduces the bug, then the fix.
+7. **After every deploy, validate the live endpoints:**
+   ```bash
+   curl -s https://<live-url>/api/health
+   # expect {"data":{"status":"ok","db":"ok"}}
+   curl -s -c /tmp/mtd.txt -b /tmp/mtd.txt https://<live-url>/tasks -o /dev/null
+   curl -s -b /tmp/mtd.txt -H "content-type: application/json" \
+        -d '{"title":"Smoke test"}' https://<live-url>/api/tasks
+   # expect 201 with {"data":{... "title":"Smoke test" ...}}
+   ```
+   Then walk through the release checklist in **PRD §8** in a browser.
+8. UI is verified manually against each feature's acceptance criteria (FRD §5). State which criteria you checked in your summary.
+
+---
+
+## 10. Definition of done (per feature)
+
+A feature (`F-xx`) is done only when **all** of these are true:
+
+- [ ] Every acceptance criterion `F-xx.n` in FRD §5 is met.
+- [ ] API matches FRD §3; data matches FRD §2.
+- [ ] Endpoint tests written and passing; `npm run check` is green.
+- [ ] UI follows DESIGN.md (tokens, Lucide icons, no emoji, all four states, responsive, accessible).
+- [ ] No console errors or warnings in the browser.
+- [ ] Committed with a message referencing the feature ID.
+- [ ] Deployed and checked on the live URL (for P0 before starting P1).
+
+---
+
+## 11. Git and deployment
+
+- **Branch:** work on `main` today (solo, deadline). Small commits, one feature slice each.
+- **Commit messages:** Conventional Commits with the feature ID:
+  `feat(F-03): create task endpoint and tests` · `fix(F-10): revert card on failed move` · `test(F-09): note search cases` · `docs: update FRD API for categories` · `chore: add shadcn dialog`
+- **Never commit:** `.env`, `.env.local`, any secret, `node_modules`, `.next`. Keep `.env.example` up to date with every variable name (no values).
+- **Deploy:** Vercel auto-deploys on push to `main`. The `vercel-build` script runs migrations before building. After each push: wait for the deploy, then run the §9.7 validation.
+- **Environment variables:**
+
+| Variable | Where | Purpose |
+|---|---|---|
+| `DATABASE_URL` | Vercel (set by Neon integration), `.env.local` (Neon `dev` branch) | Postgres connection |
+| `AUTH_SECRET` | Vercel, `.env.local` — P1 | Auth.js signing secret (`npx auth secret`) |
+| `AUTH_GOOGLE_ID` | Vercel, `.env.local` — P1 | Google OAuth client ID |
+| `AUTH_GOOGLE_SECRET` | Vercel, `.env.local` — P1 | Google OAuth client secret |
+
+- **Google OAuth (P1):** authorised redirect URIs `http://localhost:3000/api/auth/callback/google` and `https://<live-domain>/api/auth/callback/google`. The consent screen must be **published to production** before submission (PRD §8).
+
+---
+
+## 12. Security rules
+
+- Never trust a `userId` from the client. The user always comes from `requireUser`.
+- Every read/write is scoped to the current user (§6).
+- The guest cookie is `HttpOnly`, `SameSite=Lax`, `Secure` in production, 1-year expiry. A guest cookie pointing at a non-guest user is ignored (FRD §3.2).
+- Secrets only in env vars, only read on the server. Nothing secret in client components or `NEXT_PUBLIC_*` variables.
+- React escapes output by default — never use `dangerouslySetInnerHTML`.
+- Validate and cap every input (lengths in FRD §3.5).
+
+---
+
+## 13. Build order (today)
+
+Follow this order; each step ends with `npm run check` green, a commit, and (for steps 1, 4, 6, 7, 8) a push + live check. Times are from PRD §7.
+
+1. **Skeleton (by 18:30):** Next.js + Tailwind + shadcn init, tokens in `globals.css`, Inter, Lucide, logo, app shell with nav (F-01), `db/index.ts`, `vitest.config.ts`, `tests/setup.ts`, `/api/health` + test (F-11). Push → connect Vercel + Neon → confirm `/api/health` live.
+2. **Guest workspace:** `users` table + migration, `middleware.ts`, `requireUser`, `/api/me` + tests, guest banner (F-02).
+3. **Tasks API:** `tasks` table + migration, E-03 to E-07 with validation, serializers and full tests (F-03 – F-08 API).
+4. **Tasks UI:** list, dialog (create/edit), delete confirm, checkbox, all states (F-03 – F-07). Push + live check.
+5. **Search & filter UI** with URL state (F-08).
+6. **Notes:** table + migration, E-08 to E-12 + tests, notes UI with autosave (F-09). Push + live check.
+7. **Kanban board** with dnd-kit and "Move to" menu (F-10). Push + live check. **P0 complete — run PRD §8 checklist.**
+8. **P1, only if time allows, in this order:** Calendar (F-12) → Categories (F-13) → Google sign-in (F-14). Push + live check after each.
+9. **23:00 code freeze.** Final live validation. Submit.
+
+---
+
+## 14. How to work with the human
+
+- Keep each response focused: what you changed, which feature/criteria it covers, test results, and anything the human must do manually (e.g. set an env var in Vercel).
+- **Ask before:** adding a dependency, changing the schema or API beyond FRD, deviating from DESIGN.md, or starting P1/P2 work.
+- **Don't ask about** things this file or the FRD already answer — just follow them.
+- If a step is taking much longer than planned, say so early and propose what to cut (P1 first, never P0 tests).
+- When you finish a feature, list the manual checks the human should do in the browser.
+
+---
+
+## 15. Never
+
+- Never use emoji in code, UI, copy, seed data or commit messages.
+- Never add a separate backend server, another database, or another icon/UI library.
+- Never commit secrets or `.env*` files (except `.env.example`).
+- Never skip, delete or weaken tests to get a green run.
+- Never edit committed migrations.
+- Never return `userId` or another user's data from the API.
+- Never mark a feature done without its tests passing and the live URL checked.
