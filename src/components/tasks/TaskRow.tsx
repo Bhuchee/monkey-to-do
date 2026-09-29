@@ -60,58 +60,66 @@ export function TaskRow({
 
   return (
     <div
-      className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-surface px-4 py-3 hover:bg-surface-raised"
+      className="rounded-md border border-border bg-surface px-4 py-3 hover:bg-surface-raised"
       role="listitem"
     >
-      <Checkbox
-        checked={done}
-        onCheckedChange={handleToggle}
-        aria-label={done ? "Mark as not done" : "Mark as done"}
-      />
+      <div className="flex items-center gap-3">
+        <Checkbox
+          checked={done}
+          onCheckedChange={handleToggle}
+          aria-label={done ? "Mark as not done" : "Mark as done"}
+        />
 
-      <button
-        type="button"
-        onClick={() => onEdit(task)}
-        className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left"
-      >
-        <span
-          className={cn(
-            "truncate text-sm font-medium text-fg",
-            done && "text-fg-muted line-through",
-          )}
+        <button
+          type="button"
+          onClick={() => onEdit(task)}
+          className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left"
         >
-          {task.title}
-        </span>
-        {task.description ? (
-          <span className="w-full truncate text-sm text-fg-muted">{task.description}</span>
-        ) : null}
-      </button>
+          <span
+            className={cn(
+              "w-full truncate text-sm font-medium text-fg",
+              done && "text-fg-muted line-through",
+            )}
+          >
+            {task.title}
+          </span>
+          {task.description ? (
+            <span className="w-full truncate text-sm text-fg-muted">{task.description}</span>
+          ) : null}
+        </button>
 
-      <div className="flex flex-wrap items-center gap-2">
+        <div className="hidden shrink-0 items-center gap-2 md:flex">
+          <PriorityBadge priority={task.priority} />
+          <DueChip dueDate={task.dueDate} status={task.status} />
+          <StatusBadge status={task.status} />
+        </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button variant="ghost" size="icon" aria-label="More actions" />
+            }
+          >
+            <Ellipsis className="size-4" aria-hidden="true" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onEdit(task)}>
+              <Pencil className="size-4" aria-hidden="true" />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem variant="destructive" onClick={() => onRequestDelete(task)}>
+              <Trash2 className="size-4" aria-hidden="true" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-2 pl-9 md:hidden">
         <PriorityBadge priority={task.priority} />
         <DueChip dueDate={task.dueDate} status={task.status} />
         <StatusBadge status={task.status} />
       </div>
-
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button variant="ghost" size="icon" aria-label="More actions" />
-          }
-        >
-          <Ellipsis className="size-4" aria-hidden="true" />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => onEdit(task)}>
-            <Pencil className="size-4" aria-hidden="true" />
-            Edit
-          </DropdownMenuItem>
-          <DropdownMenuItem variant="destructive" onClick={() => onRequestDelete(task)}>
-            <Trash2 className="size-4" aria-hidden="true" />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
     </div>
   );
 }
