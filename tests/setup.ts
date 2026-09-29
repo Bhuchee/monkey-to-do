@@ -6,8 +6,8 @@ import { afterEach, beforeAll } from "vitest";
 import { db } from "@/db";
 import type * as schema from "@/db/schema";
 
-// Extend this list as new tables are added (tasks in M3, notes in M6, ...).
-const TABLES = ["users"];
+// Extend this list as new tables are added (notes in M6, ...).
+const TABLES = ["users", "tasks"];
 
 beforeAll(async () => {
   await migrate(db as unknown as PgliteDatabase<typeof schema>, {

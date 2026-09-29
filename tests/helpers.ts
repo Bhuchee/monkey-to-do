@@ -1,3 +1,6 @@
+import { db } from "@/db";
+import { tasks, users } from "@/db/schema";
+
 type CallOptions = {
   url: string;
   method?: string;
@@ -7,12 +10,15 @@ type CallOptions = {
   headers?: Record<string, string>;
 };
 
-type RouteHandler = (
+type RouteHandler<TParams extends Record<string, string>> = (
   request: Request,
-  context: { params: Promise<Record<string, string>> },
+  context: { params: Promise<TParams> },
 ) => Promise<Response>;
 
-export async function call(handler: RouteHandler, options: CallOptions) {
+export async function call<TParams extends Record<string, string> = Record<string, string>>(
+  handler: RouteHandler<TParams>,
+  options: CallOptions,
+) {
   const { url, method, guest, body, params, headers } = options;
   const resolvedMethod = method ?? (body !== undefined ? "POST" : "GET");
 
@@ -33,7 +39,7 @@ export async function call(handler: RouteHandler, options: CallOptions) {
   });
 
   const response = await handler(request, {
-    params: Promise.resolve(params ?? {}),
+    params: Promise.resolve((params ?? {}) as TParams),
   });
 
   const text = await response.text();
@@ -44,4 +50,18 @@ export async function call(handler: RouteHandler, options: CallOptions) {
 
 export function newGuest(): string {
   return crypto.randomUUID();
+}
+
+export async function makeTask(
+  userId: string,
+  overrides: Partial<typeof tasks.$inferInsert> = {},
+) {
+  await db.insert(users).values({ id: userId, isGuest: true }).onConflictDoNothing();
+
+  const [row] = await db
+    .insert(tasks)
+    .values({ userId, title: "Task", ...overrides })
+    .returning();
+
+  return row;
 }
