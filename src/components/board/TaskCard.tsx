@@ -1,5 +1,6 @@
 "use client";
 
+import type { KeyboardEvent, MouseEvent, PointerEvent } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { ArrowRightLeft, Ellipsis, GripVertical, Pencil, Trash2 } from "lucide-react";
@@ -40,39 +41,56 @@ export function TaskCard({
     id: task.id,
   });
 
+  function stopForMenu(e: PointerEvent | MouseEvent) {
+    // The More menu sits inside the card's drag/click surface; stop these
+    // events from reaching the card so opening the menu never starts a
+    // drag or fires the card's own click-to-edit.
+    e.stopPropagation();
+  }
+
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform) }}
+      {...listeners}
+      {...attributes}
+      onClick={() => onEdit(task)}
+      onKeyDown={(e: KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onEdit(task);
+        }
+      }}
       className={cn(
-        "group rounded-md border border-border bg-surface-raised p-3",
+        "group cursor-grab touch-none select-none rounded-md border border-border bg-surface-raised p-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand",
         isDragging && "z-10 opacity-90 ring-1 ring-brand",
       )}
     >
       <div className="flex items-start gap-1.5">
-        <button
-          type="button"
-          {...listeners}
-          {...attributes}
-          aria-label="Drag to move"
-          className="mt-0.5 cursor-grab touch-none text-fg-muted opacity-100 md:opacity-0 md:group-hover:opacity-100"
-        >
-          <GripVertical className="size-4" aria-hidden="true" />
-        </button>
+        <GripVertical
+          className="mt-0.5 size-4 shrink-0 text-fg-muted opacity-100 md:opacity-0 md:group-hover:opacity-100"
+          aria-hidden="true"
+        />
 
-        <button
-          type="button"
-          onClick={() => onEdit(task)}
-          className="min-w-0 flex-1 text-left text-sm font-medium text-fg"
-        >
-          <span className="line-clamp-2">{task.title}</span>
-        </button>
+        <span className="line-clamp-2 min-w-0 flex-1 text-sm font-medium text-fg">
+          {task.title}
+        </span>
 
         <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="More actions" />}>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="More actions"
+                onPointerDown={stopForMenu}
+                onClick={stopForMenu}
+              />
+            }
+          >
             <Ellipsis className="size-4" aria-hidden="true" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" onClick={stopForMenu}>
             <DropdownMenuItem onClick={() => onEdit(task)}>
               <Pencil className="size-4" aria-hidden="true" />
               Edit
