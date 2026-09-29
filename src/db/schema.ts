@@ -45,3 +45,18 @@ export const tasks = pgTable(
     index("tasks_user_id_due_date_idx").on(table.userId, table.dueDate),
   ],
 );
+
+export const notes = pgTable(
+  "notes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 200 }).notNull().default(""),
+    content: text("content").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("notes_user_id_updated_at_idx").on(table.userId, table.updatedAt.desc())],
+);
