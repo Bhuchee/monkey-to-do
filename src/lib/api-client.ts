@@ -96,3 +96,50 @@ export async function deleteTask(id: string): Promise<void> {
     throw new ApiError(response.status, json?.error?.message ?? "Request failed");
   }
 }
+
+export type Note = {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type NoteCreateInput = {
+  title?: string;
+  content?: string;
+};
+
+export type NoteUpdateInput = Partial<NoteCreateInput>;
+
+export async function listNotes(params?: Record<string, string>): Promise<Note[]> {
+  const qs = params && Object.keys(params).length > 0 ? `?${new URLSearchParams(params)}` : "";
+  const response = await fetch(`/api/notes${qs}`);
+  return parseResponse<Note[]>(response);
+}
+
+export async function createNote(input: NoteCreateInput = {}): Promise<Note> {
+  const response = await fetch("/api/notes", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return parseResponse<Note>(response);
+}
+
+export async function updateNote(id: string, input: NoteUpdateInput): Promise<Note> {
+  const response = await fetch(`/api/notes/${id}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return parseResponse<Note>(response);
+}
+
+export async function deleteNote(id: string): Promise<void> {
+  const response = await fetch(`/api/notes/${id}`, { method: "DELETE" });
+  if (!response.ok) {
+    const json = await response.json().catch(() => null);
+    throw new ApiError(response.status, json?.error?.message ?? "Request failed");
+  }
+}
