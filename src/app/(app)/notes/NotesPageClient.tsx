@@ -86,8 +86,12 @@ export function NotesPageClient() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-96px)] flex-col overflow-hidden rounded-lg border border-border md:h-[calc(100dvh-64px)] md:flex-row">
-      <div className={selectedId ? "hidden md:flex md:h-full" : "flex h-full"}>
+    <div className="flex h-[calc(100dvh-96px)] w-full min-w-0 flex-col overflow-hidden rounded-lg border border-border md:h-[calc(100dvh-64px)] md:flex-row">
+      <div
+        className={
+          selectedId ? "hidden md:flex md:h-full" : "flex h-full w-full min-w-0"
+        }
+      >
         <NoteList
           notes={notes}
           isLoading={isLoading}
@@ -101,7 +105,11 @@ export function NotesPageClient() {
         />
       </div>
 
-      <div className={selectedId ? "flex h-full flex-1" : "hidden h-full flex-1 md:flex"}>
+      <div
+        className={
+          selectedId ? "flex h-full w-full min-w-0 flex-1" : "hidden h-full flex-1 md:flex"
+        }
+      >
         {selectedNote ? (
           <NoteEditor
             key={selectedNote.id}

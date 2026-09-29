@@ -33,9 +33,9 @@ export function NoteList({
   onSearchChange: (value: string) => void;
 }) {
   return (
-    <div className="flex h-full flex-col border-border md:w-[320px] md:shrink-0 md:border-r">
-      <div className="flex flex-col gap-3 border-b border-border p-3">
-        <div className="relative">
+    <div className="flex h-full w-full min-w-0 flex-col border-border md:w-[320px] md:shrink-0 md:border-r">
+      <div className="flex w-full min-w-0 flex-col gap-3 border-b border-border p-3">
+        <div className="relative w-full min-w-0">
           <Search
             className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-fg-muted"
             aria-hidden="true"
@@ -45,7 +45,7 @@ export function NoteList({
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search notes"
             aria-label="Search notes"
-            className="pl-8"
+            className="w-full pl-8"
           />
         </div>
         <Button variant="secondary" className="w-full" onClick={onCreate}>
@@ -76,26 +76,26 @@ export function NoteList({
             }
           />
         ) : (
-          <ul>
+          <ul className="w-full min-w-0">
             {notes.map((note) => {
               const active = note.id === selectedId;
               const preview = note.content.split("\n")[0]?.trim();
               return (
-                <li key={note.id}>
+                <li key={note.id} className="w-full min-w-0">
                   <button
                     type="button"
                     onClick={() => onSelect(note.id)}
                     aria-current={active ? "true" : undefined}
                     className={cn(
-                      "flex w-full flex-col gap-0.5 border-l-2 border-transparent px-3 py-3 text-left",
+                      "flex w-full min-w-0 flex-col gap-0.5 border-l-2 border-transparent px-3 py-3 text-left",
                       active ? "border-brand bg-brand-soft" : "hover:bg-surface-raised",
                     )}
                   >
-                    <span className="truncate text-sm font-medium text-fg">
+                    <span className="w-full min-w-0 truncate text-sm font-medium text-fg">
                       {note.title.trim() || "Untitled note"}
                     </span>
                     {preview ? (
-                      <span className="truncate text-sm text-fg-muted">{preview}</span>
+                      <span className="w-full min-w-0 truncate text-sm text-fg-muted">{preview}</span>
                     ) : null}
                     <span className="text-xs text-fg-muted">{formatRelativeTime(note.updatedAt)}</span>
                   </button>

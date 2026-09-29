@@ -68,7 +68,7 @@ export function NoteEditor({
   }
 
   return (
-    <div className="flex h-full flex-1 flex-col">
+    <div className="flex h-full min-w-0 flex-1 flex-col">
       <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2 md:px-6">
         <div className="flex items-center gap-2">
           <Button
@@ -96,7 +96,7 @@ export function NoteEditor({
           }}
           placeholder="Untitled note"
           aria-label="Note title"
-          className="border-0 bg-transparent text-xl font-semibold text-fg outline-none placeholder:text-fg-subtle"
+          className="w-full min-w-0 border-0 bg-transparent text-xl font-semibold text-fg outline-none placeholder:text-fg-subtle"
         />
         <textarea
           value={content}
@@ -106,7 +106,7 @@ export function NoteEditor({
           }}
           placeholder="Start writing…"
           aria-label="Note content"
-          className="min-h-[300px] flex-1 resize-none border-0 bg-transparent text-base leading-[26px] text-fg outline-none placeholder:text-fg-subtle"
+          className="min-h-[300px] w-full min-w-0 flex-1 resize-none border-0 bg-transparent text-base leading-[26px] text-fg outline-none placeholder:text-fg-subtle"
         />
       </div>
     </div>
