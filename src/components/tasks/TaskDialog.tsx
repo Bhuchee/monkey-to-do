@@ -30,6 +30,18 @@ import {
 } from "@/lib/api-client";
 import { taskCreateSchema } from "@/lib/validation/tasks";
 
+const STATUS_LABELS: Record<TaskStatus, string> = {
+  todo: "To do",
+  in_progress: "In progress",
+  done: "Done",
+};
+
+const PRIORITY_LABELS: Record<TaskPriority, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+};
+
 type FormState = {
   title: string;
   description: string;
@@ -191,7 +203,7 @@ export function TaskDialog({
                   onValueChange={(value) => setForm((f) => ({ ...f, status: value as TaskStatus }))}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue />
+                    <SelectValue>{(value: TaskStatus) => STATUS_LABELS[value]}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todo">To do</SelectItem>
@@ -208,7 +220,7 @@ export function TaskDialog({
                   onValueChange={(value) => setForm((f) => ({ ...f, priority: value as TaskPriority }))}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue />
+                    <SelectValue>{(value: TaskPriority) => PRIORITY_LABELS[value]}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="low">Low</SelectItem>

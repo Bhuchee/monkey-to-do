@@ -16,6 +16,28 @@ import {
 
 const FILTER_KEYS = ["q", "status", "priority", "due"] as const;
 
+const STATUS_LABELS: Record<string, string> = {
+  all: "All statuses",
+  todo: "To do",
+  in_progress: "In progress",
+  done: "Done",
+};
+
+const PRIORITY_LABELS: Record<string, string> = {
+  all: "All priorities",
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+};
+
+const DUE_LABELS: Record<string, string> = {
+  all: "All due dates",
+  overdue: "Overdue",
+  today: "Today",
+  week: "Next 7 days",
+  none: "No date",
+};
+
 export function TaskFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -75,7 +97,7 @@ export function TaskFilters() {
 
       <Select value={searchParams.get("status") ?? "all"} onValueChange={(v) => updateParams({ status: v === "all" ? null : v })}>
         <SelectTrigger aria-label="Filter by status">
-          <SelectValue />
+          <SelectValue>{(value: string) => STATUS_LABELS[value]}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All statuses</SelectItem>
@@ -90,7 +112,7 @@ export function TaskFilters() {
         onValueChange={(v) => updateParams({ priority: v === "all" ? null : v })}
       >
         <SelectTrigger aria-label="Filter by priority">
-          <SelectValue />
+          <SelectValue>{(value: string) => PRIORITY_LABELS[value]}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All priorities</SelectItem>
@@ -102,7 +124,7 @@ export function TaskFilters() {
 
       <Select value={searchParams.get("due") ?? "all"} onValueChange={updateDue}>
         <SelectTrigger aria-label="Filter by due date">
-          <SelectValue />
+          <SelectValue>{(value: string) => DUE_LABELS[value]}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All due dates</SelectItem>
