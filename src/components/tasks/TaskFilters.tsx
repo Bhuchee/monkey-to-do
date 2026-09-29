@@ -13,9 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { localToday } from "@/lib/dates";
 
-const FILTER_KEYS = ["q", "status", "priority", "due", "today"] as const;
+const FILTER_KEYS = ["q", "status", "priority", "due"] as const;
 
 export function TaskFilters() {
   const router = useRouter();
@@ -48,11 +47,7 @@ export function TaskFilters() {
   }
 
   function updateDue(value: string | null) {
-    if (value === "all" || value === null) {
-      updateParams({ due: null, today: null });
-    } else {
-      updateParams({ due: value, today: localToday() });
-    }
+    updateParams({ due: value === "all" || value === null ? null : value });
   }
 
   const hasActiveFilters = FILTER_KEYS.some((key) => searchParams.has(key));

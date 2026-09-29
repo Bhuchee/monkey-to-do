@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useTasks } from "@/hooks/useTasks";
 import { ApiError, deleteTask, type Task } from "@/lib/api-client";
 
-const FILTER_KEYS = ["q", "status", "priority", "due", "today"] as const;
+const FILTER_KEYS = ["q", "status", "priority", "due"] as const;
 
 export function TasksPageClient() {
   const router = useRouter();

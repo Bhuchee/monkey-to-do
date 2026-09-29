@@ -1,3 +1,5 @@
+import { localToday } from "@/lib/dates";
+
 export type Me = {
   id: string;
   isGuest: boolean;
@@ -56,7 +58,15 @@ export type TaskCreateInput = {
 export type TaskUpdateInput = Partial<TaskCreateInput>;
 
 export async function listTasks(params?: Record<string, string>): Promise<Task[]> {
-  const qs = params && Object.keys(params).length > 0 ? `?${new URLSearchParams(params)}` : "";
+  // today is always computed fresh here (never persisted in the URL) so a
+  // shared or refreshed link resolves "due" filters against the viewer's
+  // current date, not whatever date the link was created on.
+  const resolvedParams =
+    params?.due && !params.today ? { ...params, today: localToday() } : params;
+  const qs =
+    resolvedParams && Object.keys(resolvedParams).length > 0
+      ? `?${new URLSearchParams(resolvedParams)}`
+      : "";
   const response = await fetch(`/api/tasks${qs}`);
   return parseResponse<Task[]>(response);
 }
